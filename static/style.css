@@ -103,18 +103,23 @@
   padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  user-select: none; /* Prevent text selection on touch devices */
+}
+
+html, body {
+  width: 800px;
+  height: 100vh;
+  overflow: hidden;
+  position: fixed;
 }
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   background-color: var(--color-background);
   color: var(--color-text);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 800px;
-  height: 480px;
-  touch-action: manipulation;
+  font-size: 16px;
+  line-height: 1.5;
+  touch-action: manipulation; /* Disable double-tap zoom */
 }
 
 .container {
@@ -656,6 +661,19 @@ main::-webkit-scrollbar-thumb:hover {
   transition: all 0.15s ease;
 }
 
+#disconnect-wifi{
+   background-color: var(--color-error);
+  color: var(--color-background);
+  border: 1px solid var(--color-border);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  width: 100%;
+  font-weight: 500;
+  font-size: 1rem;
+  margin-top: 5px;
+}
+
 .secondary-btn:hover {
   background-color: var(--color-background-alt);
 }
@@ -681,6 +699,18 @@ main::-webkit-scrollbar-thumb:hover {
   width: 4rem;
   height: 3rem;
   font-size: 1.25rem;
+}
+
+#wifi-network-list{
+  overflow-y: auto;
+  height: 50px;
+}
+
+#wifi-network-list > li{
+list-style: none;
+margin-left: 10px;
+margin-bottom: 5px;
+margin-top: 5px;
 }
 
 /* Animation for Modal */

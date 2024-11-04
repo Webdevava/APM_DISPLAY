@@ -1,10 +1,16 @@
-# app.py
 import sqlite3
 import json
 from flask import Flask, render_template, request, jsonify
 from mqtt_publisher import publish_mqtt_message
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import QUrl
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+import sys
+import threading
+import subprocess
+import re
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
 last_known_member_states = None
 
@@ -180,5 +186,117 @@ def toggle_member_active(member_id):
     conn.close()
     return jsonify({'message': f'Member active state toggled to {new_state}'})
 
+@app.route('/api/wifi/connect', methods=['POST'])
+def connect_wifi():
+    data = request.json
+    ssid = data.get('ssid')
+    password = data.get('password')
+
+    try:
+        # Create a Wi-Fi profile XML
+        profile = f"""<?xml version="1.0"?>
+        <WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
+            <name>{ssid}</name>
+            <SSIDConfig>
+                <SSID>
+                    <name>{ssid}</name>
+                </SSID>
+            </SSIDConfig>
+            <connectionType>ESS</connectionType>
+            <connectionMode>auto</connectionMode>
+            <MSM>
+                <security>
+                    <authEncryption>
+                        <authentication>WPA2PSK</authentication>
+                        <encryption>AES</encryption>
+                        <useOneX>false</useOneX>
+                    </authEncryption>
+                    <sharedKey>
+                        <keyType>passPhrase</keyType>
+                        <protected>false</protected>
+                        <keyMaterial>{password}</keyMaterial>
+                    </sharedKey>
+                </security>
+            </MSM>
+        </WLANProfile>"""
+
+        # Save the profile to a file
+        with open(f"{ssid}.xml", "w") as f:
+            f.write(profile)
+
+        # Add the Wi-Fi profile
+        subprocess.run(f'netsh wlan add profile filename="{ssid}.xml"', check=True, shell=True)
+
+        # Connect to the Wi-Fi network
+        subprocess.run(f'netsh wlan connect name="{ssid}"', check=True, shell=True)
+
+        return jsonify({"message": "Connected successfully!"}), 200
+    except subprocess.CalledProcessError as e:
+        return jsonify({"message": "Connection failed!", "error": str(e)}), 500
+
+@app.route('/api/wifi/disconnect', methods=['POST'])
+def disconnect_wifi():
+    try:
+        # Get the current connection info
+        output = subprocess.check_output('netsh wlan show interfaces', universal_newlines=True)
+        ssid = re.search(r"SSID\s+:\s(.+)", output)
+        if ssid:
+            ssid = ssid.group(1).strip()
+            # Disconnect from the current network
+            subprocess.run(f'netsh wlan disconnect interface="Wi-Fi"', check=True, shell=True)
+            return jsonify({"message": f"Disconnected from {ssid} successfully!"}), 200
+        else:
+            return jsonify({"message": "No active Wi-Fi connection found."}), 200
+    except subprocess.CalledProcessError as e:
+        return jsonify({"message": "Disconnection failed!", "error": str(e)}), 500
+
+@app.route('/api/wifi/networks', methods=['GET'])
+def list_wifi_networks():
+    try:
+        # Use subprocess to run the netsh command to list available networks
+        output = subprocess.check_output(['netsh', 'wlan', 'show', 'network', 'mode=Bssid'], universal_newlines=True)
+        
+        # Parse the output to extract SSIDs and signal strength
+        networks = []
+        current_network = {}
+        for line in output.splitlines():
+            if "SSID" in line and "BSSID" not in line:
+                if current_network:
+                    networks.append(current_network)
+                    current_network = {}
+                ssid = line.split(":")[1].strip()
+                current_network["ssid"] = ssid
+            elif "Signal" in line:
+                signal = line.split(":")[1].strip()
+                current_network["signal_strength"] = signal
+
+        if current_network:
+            networks.append(current_network)
+
+        return jsonify(networks), 200
+    except subprocess.CalledProcessError as e:
+        return jsonify({"message": "Failed to scan networks!", "error": str(e)}), 500
+
+# Function to run the Flask app
+def run_flask():
+    app.run(debug=True, use_reloader=False)
+
+# Main PyQt application
+class MyApp(QtWidgets.QMainWindow):
+    def __init__(self):
+        super(MyApp, self).__init__()
+        self.browser = QWebEngineView()
+        self.setCentralWidget(self.browser)
+        self.showFullScreen()  # Set the window to full screen
+        self.browser.setUrl(QUrl("http://127.0.0.1:5000"))  # URL to your Flask app
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Start the Flask app in a separate thread
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+    
+    # Start the PyQt application
+    app = QtWidgets.QApplication(sys.argv)
+    window = MyApp()
+    window.show()
+    sys.exit(app.exec_())

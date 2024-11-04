@@ -73,19 +73,35 @@
     </div>
 
     <!-- Settings Modal -->
-    <div id="settings-modal" class="modal">
-        <div class="modal-content setting-content">
-            <span class="close">&times;</span>
-            <h2>Network Settings</h2>
-            <p>WiFi: Connected</p>
-            <p>IP Address: 192.168.1.100</p>
-            <p>Signal Strength: Strong</p>
+<!-- Network Settings Modal -->
+<div id="settings-modal" class="modal">
+    <div class="modal-content setting-content">
+        <span class="close">&times;</span>
+        <h2>Network Settings</h2>
+        <form id="wifi-form">
+            <div class="input-group">
+                <label for="wifi-ssid">Wi-Fi SSID:</label>
+                <input type="text" id="wifi-ssid" required>
+            </div>
+            <div class="input-group">
+                <label for="wifi-password">Password:</label>
+                <input type="password" id="wifi-password" required>
+            </div>
+            <button type="submit" class="primary-btn">Connect</button>
+        </form>
+        <button id="disconnect-wifi" class="secondary-btn">Disconnect</button>
+        <div class="network-list-container">
+            <h3>Available Networks</h3>
+            <ul id="wifi-network-list"></ul>
         </div>
     </div>
+</div>
+
+<!-- Other modals (Member, Info, Delete) should follow a similar structure -->
 
     <!-- Delete Confirmation Modal -->
     <div id="delete-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content">J
             <h2>Delete Member</h2>
             <p>Are you sure you want to delete <span id="delete-member-name"></span>?</p>
             <div class="modal-actions">

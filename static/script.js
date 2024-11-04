@@ -12,71 +12,76 @@ document.addEventListener("DOMContentLoaded", function () {
   const infoBtn = document.getElementById("info-btn");
   const settingsBtn = document.getElementById("settings-btn");
   const loader = document.getElementById("loader");
-      const clockTime = document.querySelector(".overlay .time");
-      const clockDate = document.querySelector(".overlay .date");
-      const clockMeridiem = document.querySelector(".overlay .meridiem");
+  const clockTime = document.querySelector(".overlay .time");
+  const clockDate = document.querySelector(".overlay .date");
+  const clockMeridiem = document.querySelector(".overlay .meridiem");
+  const wifiForm = document.getElementById("wifi-form");
+  const disconnectWifiBtn = document.getElementById("disconnect-wifi");
 
-      function updateClock() {
-        const now = new Date();
+  wifiForm.addEventListener("submit", connectWifi);
+  disconnectWifiBtn.addEventListener("click", disconnectWifi);
 
-        // Update time
-        let hours = now.getHours();
-        const minutes = now.getMinutes().toString().padStart(2, "0");
-        const meridiem = hours >= 12 ? "PM" : "AM";
+  function updateClock() {
+    const now = new Date();
 
-        // Convert to 12-hour format
-        hours = hours % 12;
-        hours = hours ? hours : 12; // Convert 0 to 12
+    // Update time
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    const meridiem = hours >= 12 ? "PM" : "AM";
 
-        // Update date
-        const days = [
-          "Sunday",
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-        ];
-        const months = [
-          "January",
-          "February",
-          "March",
-          "April",
-          "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
-        ];
+    // Convert to 12-hour format
+    hours = hours % 12;
+    hours = hours ? hours : 12; // Convert 0 to 12
 
-        clockTime.textContent = `${hours}:${minutes}`;
-        clockDate.textContent = `${days[now.getDay()]}, ${
-          months[now.getMonth()]
-        } ${now.getDate()}`;
-        clockMeridiem.textContent = meridiem;
+    // Update date
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    clockTime.textContent = `${hours}:${minutes}`;
+    clockDate.textContent = `${days[now.getDay()]}, ${
+      months[now.getMonth()]
+    } ${now.getDate()}`;
+    clockMeridiem.textContent = meridiem;
+  }
+
+  function updateOverlayState(isTvCablePluggedIn) {
+    if (!isTvCablePluggedIn) {
+      overlay.classList.add("active");
+      // Start updating clock if overlay is shown
+      if (!window.clockInterval) {
+        updateClock(); // Initial update
+        window.clockInterval = setInterval(updateClock, 1000);
       }
-
-      function updateOverlayState(isTvCablePluggedIn) {
-        if (!isTvCablePluggedIn) {
-          overlay.classList.add("active");
-          // Start updating clock if overlay is shown
-          if (!window.clockInterval) {
-            updateClock(); // Initial update
-            window.clockInterval = setInterval(updateClock, 1000);
-          }
-        } else {
-          overlay.classList.remove("active");
-          // Stop clock updates if overlay is hidden
-          if (window.clockInterval) {
-            clearInterval(window.clockInterval);
-            window.clockInterval = null;
-          }
-        }
+    } else {
+      overlay.classList.remove("active");
+      // Stop clock updates if overlay is hidden
+      if (window.clockInterval) {
+        clearInterval(window.clockInterval);
+        window.clockInterval = null;
       }
+    }
+  }
 
   function showLoader() {
     loader.style.display = "flex";
@@ -103,7 +108,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function getBackgroundImage(age, gender) {
     const ageCategory = getAgeCategory(age);
-    return `url('/static/images/${ageCategory}_${gender === "m" ? "male" : "female"}.svg')`;
+    return `url('/static/images/${ageCategory}_${
+      gender === "m" ? "male" : "female"
+    }.svg')`;
   }
 
   function updateCurrentTime() {
@@ -114,12 +121,12 @@ document.addEventListener("DOMContentLoaded", function () {
   setInterval(updateCurrentTime, 1000);
   updateCurrentTime();
 
-    function fetchSystemStatus() {
-      showLoader();
-      fetch("/api/system_status")
-        .then((response) => response.json())
-        .then((data) => {
-          systemStatusEl.innerHTML = `
+  function fetchSystemStatus() {
+    showLoader();
+    fetch("/api/system_status")
+      .then((response) => response.json())
+      .then((data) => {
+        systemStatusEl.innerHTML = `
                     <p>BLE Power Adapter Connected: ${data.is_ble_power_adapter_connected}</p>
                     <p>BLE Remote Connected: ${data.is_ble_remote_connected}</p>
                     <p>RTC Battery: ${data.rtc_battery_percentage}%</p>
@@ -128,18 +135,18 @@ document.addEventListener("DOMContentLoaded", function () {
                     <p>TV Tamper Detected: ${data.is_tv_tamper_detected}</p>
                 `;
 
-          // Update overlay state based on TV cable status
-          updateOverlayState(data.is_tv_cable_plugged_in);
+        // Update overlay state based on TV cable status
+        updateOverlayState(data.is_tv_cable_plugged_in);
 
-          // If TV cable is not plugged in, refresh the members list
-          if (!data.is_tv_cable_plugged_in) {
-            fetchMembers();
-          }
-        })
-        .finally(() => {
-          hideLoader();
-        });
-    }
+        // If TV cable is not plugged in, refresh the members list
+        if (!data.is_tv_cable_plugged_in) {
+          fetchMembers();
+        }
+      })
+      .finally(() => {
+        hideLoader();
+      });
+  }
 
   function fetchMembers() {
     showLoader();
@@ -245,26 +252,24 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   }
 
-    function toggleMemberActive(id) {
-      const memberCard = document.querySelector(
-        `.member-card[data-id="${id}"]`
-      );
-      if (!memberCard) return;
+  function toggleMemberActive(id) {
+    const memberCard = document.querySelector(`.member-card[data-id="${id}"]`);
+    if (!memberCard) return;
 
-      memberCard.classList.add("loading");
-      fetch(`/api/members/${id}/toggle_active`, { method: "POST" })
-        .then((response) => response.json())
-        .then(() => {
-          // Only fetch members to update UI
-          fetchMembers().then(() => {
-            memberCard.classList.remove("loading");
-          });
-        })
-        .catch((error) => {
-          console.error("Error toggling member active state:", error);
+    memberCard.classList.add("loading");
+    fetch(`/api/members/${id}/toggle_active`, { method: "POST" })
+      .then((response) => response.json())
+      .then(() => {
+        // Only fetch members to update UI
+        fetchMembers().then(() => {
           memberCard.classList.remove("loading");
         });
-    }
+      })
+      .catch((error) => {
+        console.error("Error toggling member active state:", error);
+        memberCard.classList.remove("loading");
+      });
+  }
 
   Array.from(closeBtns).forEach((btn) =>
     btn.addEventListener("click", closeModal)
@@ -439,7 +444,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Add input focus listeners
   const inputs = document.querySelectorAll(
-    'input[type="text"], input[type="number"]'
+    'input[type="text"], input[type="password"], input[type="number"]'
   );
   inputs.forEach((input) => {
     input.addEventListener("focus", () => showKeyboard(input));
@@ -449,7 +454,9 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("click", (e) => {
     if (
       !keyboard.contains(e.target) &&
-      !e.target.matches('input[type="text"], input[type="number"]')
+      !e.target.matches(
+        'input[type="text"], input[type="password"], input[type="number"]'
+      )
     ) {
       hideKeyboard();
     }
@@ -484,6 +491,77 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   }
 
+  
+function fetchWifiNetworks() {
+  showLoader();
+  fetch("/api/wifi/networks")
+    .then((response) => response.json())
+    .then((data) => {
+      const networkList = document.getElementById("wifi-network-list");
+      networkList.innerHTML = "";
+      data.forEach((network) => {
+        const li = document.createElement("li");
+        li.textContent = `${network.ssid} (Signal: ${network.signal_strength})`;
+        li.addEventListener("click", () => {
+          document.getElementById("wifi-ssid").value = network.ssid;
+        });
+        networkList.appendChild(li);
+      });
+    })
+    .catch((error) => {
+      console.error("Error fetching Wi-Fi networks:", error);
+    })
+    .finally(() => {
+      hideLoader();
+    });
+}
+
+function connectWifi(event) {
+  event.preventDefault();
+  const ssid = document.getElementById("wifi-ssid").value;
+  const password = document.getElementById("wifi-password").value;
+
+  showLoader();
+  fetch("/api/wifi/connect", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ssid, password }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      alert(data.message);
+      fetchWifiNetworks();
+    })
+    .catch((error) => {
+      console.error("Error connecting to Wi-Fi:", error);
+      alert("Error connecting to Wi-Fi.");
+    })
+    .finally(() => {
+      hideLoader();
+    });
+}
+
+function disconnectWifi() {
+  showLoader();
+  fetch("/api/wifi/disconnect", {
+    method: "POST",
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      alert(data.message);
+      fetchWifiNetworks();
+    })
+    .catch((error) => {
+      console.error("Error disconnecting from Wi-Fi:", error);
+      alert("Error disconnecting from Wi-Fi.");
+    })
+    .finally(() => {
+      hideLoader();
+    });
+}
+
   // Confirm delete button handler
   confirmDeleteBtn.addEventListener("click", () => {
     if (pendingDeleteId) {
@@ -509,7 +587,13 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initial fetches
   fetchSystemStatus();
   fetchMembers();
+  // Fetch Wi-Fi networks on page load
+  fetchWifiNetworks();
+
+  // Refresh Wi-Fi networks every 30 seconds
+  setInterval(fetchWifiNetworks, 30000);
 
   // Set up polling for system status every 30 seconds
   setInterval(fetchSystemStatus, 15000);
 });
+

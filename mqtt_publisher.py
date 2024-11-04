@@ -56,7 +56,7 @@ def publish_mqtt_message():
         
         message = {
             "ID": 1,
-            "DEVICE_ID": 100002,
+            "DEVICE_ID": 100000,
             "Type": 3,
             "TS": int(time.time()),
             "Details": {
